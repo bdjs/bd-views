@@ -147,4 +147,17 @@ describe('koa-views', function () {
   })
 
   // TODO: #23
+
+  it('send html if ext equal html and html map not set', function(done){
+    var app = koa()
+    .use(views({ map: {jade: 'jade'}}))
+    .use(function *() {
+      yield this.render('./fixtures/basic')
+    })
+
+    request(app.listen()).get('/basic.html')
+      .expect('Content-Type', /html/)
+      .expect(/basic:html/)
+      .expect(200, done);
+  })
 })

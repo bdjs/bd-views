@@ -68,7 +68,7 @@ module.exports = function (path, opts) {
 
       debug('render `%s` with %j', file, state);
 
-      if (ext == 'html' && !opts.map) {
+      if (ext == 'html' && (!opts.map || (opts.map && !opts.map.html))) {
         yield send(this, join(path, file));
       } else {
         this.body = yield render(view, state);
