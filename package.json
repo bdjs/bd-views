@@ -1,13 +1,13 @@
 {
   "name": "bd-views",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Template rendering middleware for bd",
   "main": "index.js",
   "directories": {
     "test": "test"
   },
   "scripts": {
-    "test": "npm test"
+    "test": "make"
   },
   "repository": {
     "type": "git",

@@ -1,8 +1,8 @@
 
-bin = ./node_modules/.bin/
+
 
 test:
-	@$(bin)mocha \
+	mocha \
 		--harmony-generators \
 		--reporter dot
 

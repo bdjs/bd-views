@@ -4,8 +4,7 @@
  * Module dependencies.
  */
 
-var debug = require('debug')('koa-views');
-var resolve = require('path').resolve;
+var debug = require('debug')('bd-views');
 var dirname = require('path').dirname;
 var assign = require('object-assign');
 var fmt = require('util').format;
@@ -16,35 +15,28 @@ var send = require('koa-send');
 /**
  * Add `render` method.
  *
- * @param {String} path (optional)
  * @param {Object} opts (optional)
  * @api public
  */
-
-module.exports = function (path, opts) {
-  var base = dirname(module.parent.filename);
-
-  // set path relative to the directory the function was called + path
-  if (typeof path == 'object') {
-    opts = path;
-    path = opts.root || base;
-  } else if (!path) {
-    path = base;
+var configs = {};
+var renders = {};
+module.exports = function (options) {
+  var base = dirname(process.mainModule.filename);
+  var defaultOptions = {
+    key: 'index',
+    default: 'html',
+    path: base
   }
+  options = assign(defaultOptions, options);
 
-  opts = opts || {};
+  debug('options: %j', options);
 
-  path = resolve(base, path);
-
-  // default extension to `html`
-  if (!opts.default) opts.default = 'html';
-
-  debug('options: %j', opts);
+  configs[options.key] = options;
 
   return function *views (next) {
-    if (this.render) return yield next;
-    var render = cons(path, opts);
+    renders[options.key] = cons(options.path, options);
     this.state = this.state || {};
+    if (this.render) return yield next;
 
     /**
      * Render `view` with `locals` and `koa.ctx.state`.
@@ -56,22 +48,21 @@ module.exports = function (path, opts) {
      */
 
     this.render = function *(view, locals) {
+      var key = this.path.split('/')[1] || 'index';
+      var opts = configs[key] || defaultOptions;
       var ext = opts.default;
 
       if(view[view.length - 1] === '/'){
         view += 'index';
       }
-      var file = fmt('%s.%s', view, ext);
-
       locals = locals || {};
       var state = assign(locals, this.state);
-
-      debug('render `%s` with %j', file, state);
-
       if (ext == 'html' && (!opts.map || (opts.map && !opts.map.html))) {
-        yield send(this, join(path, file));
+        var file = fmt('%s.%s', view, ext);
+        debug('render `%s` with %j', file, state);
+        yield send(this, join(opts.path, file));
       } else {
-        this.body = yield render(view, state);
+        this.body = yield renders[key](view, state);
       }
 
       this.type = 'text/html';
