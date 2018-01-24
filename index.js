@@ -1,16 +1,22 @@
-'use strict';
+'use strict'
 
 /**
  * Module dependencies.
  */
 
-var debug = require('debug')('bd-views');
-var dirname = require('path').dirname;
-var assign = require('object-assign');
-var fmt = require('util').format;
-var join = require('path').join;
-var cons = require('co-views');
-var send = require('koa-send');
+const dirname = require('path').dirname
+const consolidate = require('consolidate')
+const send = require('koa-send')
+const getPaths = require('get-paths')
+const pretty = require('pretty')
+const path = require('path')
+const {resolve} = path
+const base = dirname(process.mainModule.filename)
+const defaultOptions = {
+  key: 'index',
+  default: 'html',
+  path: base
+}
 
 /**
  * Add `render` method.
@@ -18,56 +24,83 @@ var send = require('koa-send');
  * @param {Object} opts (optional)
  * @api public
  */
-var configs = {};
-var renders = {};
-module.exports = function (options) {
-  var base = dirname(process.mainModule.filename);
-  var defaultOptions = {
-    key: 'index',
-    default: 'html',
-    path: base
-  }
-  options = assign(defaultOptions, options);
-
-  debug('options: %j', options);
-
-  configs[options.key] = options;
-
-  return function *views (next) {
-    renders[options.key] = cons(options.path, options);
-    this.state = this.state || {};
-    if (this.render) return yield next;
-
-    /**
-     * Render `view` with `locals` and `koa.ctx.state`.
-     *
-     * @param {String} view
-     * @param {Object} locals
-     * @return {GeneratorFunction}
-     * @api public
-     */
-
-    this.render = function *(view, locals) {
-      var key = this.path.split('/')[1] || 'index';
-      var opts = configs[key] || defaultOptions;
-      var ext = opts.default;
-
-      if(view[view.length - 1] === '/'){
-        view += 'index';
-      }
-      locals = locals || {};
-      var state = assign(locals, this.state);
-      if (ext == 'html' && (!opts.map || (opts.map && !opts.map.html))) {
-        var file = fmt('%s.%s', view, ext);
-        debug('render `%s` with %j', file, state);
-        yield send(this, join(opts.path, file));
-      } else {
-        this.body = yield renders[key](view, state);
-      }
-
-      this.type = 'text/html';
+let configs = {}
+// let renders = {}
+module.exports = function (app) {
+  let apps = Object.keys(app.apps)
+  apps.forEach(key => {
+    if (!app.configs.views) {
+      return
+    }
+    let config = app.configs.views[key]
+    if (!config) {
+      return
     }
 
-    yield next;
-  }
+    let options = {
+      ...defaultOptions,
+      ...config,
+      key: key,
+      path: path.join(app.apps[key], 'views')
+    }
+
+    // 获取所有的config
+    configs[options.key] = options
+  })
+
+  app.use(async function views (ctx, next) {
+    ctx.state = ctx.state || {}
+    let key = ctx.path.split('/')[1] || 'index'
+    let {
+      path,
+      engineSource = consolidate,
+      extension = 'html',
+      options = {},
+      map
+    } = configs[key] || {}
+
+    if (ctx.render) return next()
+
+    ctx.render = function (relPath, locals = {}) {
+      return getPaths(path, relPath, extension).then(paths => {
+        const suffix = paths.ext
+        const state = Object.assign(locals, options, ctx.state || {})
+        // deep copy partials
+        state.partials = Object.assign({}, options.partials || {})
+        ctx.type = 'text/html'
+
+        // html文件直接输出
+        if (isHtml(suffix) && !map) {
+          return send(ctx, paths.rel, {
+            root: path
+          })
+        } else {
+          const engineName = map && map[suffix] ? map[suffix] : suffix
+
+          const render = engineSource[engineName]
+
+          if (!engineName || !render) {
+            return Promise.reject(
+              new Error(`Engine not found for the ".${suffix}" file extension`)
+            )
+          }
+
+          return render(resolve(path, paths.rel), state).then(html => {
+            // since pug has deprecated `pretty` option
+            // we'll use the `pretty` package in the meanwhile
+            if (locals.pretty) {
+              html = pretty(html)
+            }
+            ctx.body = html
+          })
+        }
+      })
+    }
+
+    return next()
+  })
+}
+
+function isHtml (ext) {
+  return ext === 'html'
 }
