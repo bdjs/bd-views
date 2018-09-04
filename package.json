@@ -1,6 +1,6 @@
 {
   "name": "bd-views",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Template rendering middleware for bd",
   "main": "index.js",
   "directories": {
