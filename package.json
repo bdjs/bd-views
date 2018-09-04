@@ -3,12 +3,6 @@
   "version": "2.0.0",
   "description": "Template rendering middleware for bd",
   "main": "index.js",
-  "directories": {
-    "test": "test"
-  },
-  "scripts": {
-    "test": "make"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bdjs/bd-views.git"
@@ -28,7 +22,7 @@
   },
   "dependencies": {
     "consolidate": "^0.15.1",
-    "ejs": "^2.5.9",
+    "ejs": "^2.6.1",
     "get-paths": "0.0.2",
     "handlebars": "^4.0.11",
     "jade": "^1.11.0",
@@ -36,16 +30,8 @@
     "pretty": "^2.0.0"
   },
   "devDependencies": {
-    "eslint": "^4.19.1",
-    "eslint-config-standard": "^11.0.0",
-    "eslint-plugin-import": "^2.11.0",
-    "eslint-plugin-node": "^5.2.1",
-    "eslint-plugin-promise": "^3.7.0",
-    "eslint-plugin-standard": "^3.0.1",
-    "koa": "^2.5.0",
-    "mocha": "^5.1.1",
-    "should": "^7.0.2",
-    "supertest": "^1.0.1",
-    "underscore": "^1.8.3"
+    "eslint": "^5.5.0",
+    "eslint-config-blued": "0.0.17",
+    "eslint-plugin-import": "^2.14.0"
   }
 }
